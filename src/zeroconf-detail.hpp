@@ -52,14 +52,14 @@ namespace Zeroconf
             uint16_t type;
             size_t pos;
             size_t len;
-            std::string hostname;
+            std::string name;
         };
 
         struct mdns_responce
         {
             sockaddr_storage peer;
             uint16_t qtype;
-            std::string qfqdn;
+            std::string qname;
             std::vector<mdns_record> records;
         };
 
@@ -73,17 +73,17 @@ namespace Zeroconf
             closesocket(fd); // todo: close
         }
 
-        inline void WriteFqdn(const std::string& serviceName, std::vector<uint8_t>* result)
+        inline void WriteFqdn(const std::string& name, std::vector<uint8_t>* result)
         {
             size_t len = 0;
             size_t pos = result->size();
             result->push_back(0);
 
-            for (size_t i = 0; i < serviceName.size(); i++)
+            for (size_t i = 0; i < name.size(); i++)
             {
-                if (serviceName[i] != '.')
+                if (name[i] != '.')
                 {
-                    result->push_back(serviceName[i]);
+                    result->push_back(name[i]);
                     len++;
 
                     if (len > UINT8_MAX)
@@ -93,7 +93,7 @@ namespace Zeroconf
                     }
                 }
 
-                if (serviceName[i] == '.' || i == serviceName.size() - 1)
+                if (name[i] == '.' || i == name.size() - 1)
                 {
                     if (len == 0) continue;
                     
@@ -210,11 +210,18 @@ namespace Zeroconf
         {
             // Structure:
             //   header (12b) 
-            //   hostname1 ... hostnameN 0x00
-            //   QTYPE (2b)
-            //   QCLASS (2b)
-            //   0xC0 hostname-offset (1b)
+            //   qname fqdn
+            //   qtype (2b)
+            //   qclass (2b)
+            //   0xc0
+            //   name offset (1b)
             //   DNS RR
+
+            if (input.data.empty())
+                return false;
+
+            result->qname.clear();
+            result->records.clear();
 
             memcpy(&result->peer, &input.peer, sizeof(sockaddr_storage));
 
@@ -228,18 +235,18 @@ namespace Zeroconf
                 uint8_t u8;
                 uint16_t u16;
 
-                is.ignore(2); // ID 
+                is.ignore(2); // id
     
-                is.read(reinterpret_cast<char*>(&u16), 2); // Flags
+                is.read(reinterpret_cast<char*>(&u16), 2); // flags
                 if (ntohs(u16) != MdnsResponseFlag)
                 {
                     Log::Warning("Found unexpected Flags value while parsing responce");
                     return false;
                 }
 
-                is.ignore(8); // QDCOUNT, ANCOUNT, NSCOUNT, ARCOUNT
+                is.ignore(8); // qdcount, ancount, nscount, arcount
         
-                while (1) // QFQDN
+                while (1) // qname
                 {
                     is.read(reinterpret_cast<char*>(&u8), 1); // hostname length
                     if (u8 == 0)
@@ -248,16 +255,16 @@ namespace Zeroconf
                     char str[256];
                     is.read(str, u8); // hostname data
         
-                    if (!result->qfqdn.empty())
-                        result->qfqdn.append(".");
+                    if (!result->qname.empty())
+                        result->qname.append(".");
         
-                    result->qfqdn.append(str, u8);
+                    result->qname.append(str, u8);
                 }
 
-                is.read(reinterpret_cast<char*>(&u16), 2); // QTYPE
+                is.read(reinterpret_cast<char*>(&u16), 2); // qtype
                 result->qtype = ntohs(u16);
 
-                is.ignore(2); // QCLASS
+                is.ignore(2); // qclass
 
                 while (1)
                 {
@@ -281,13 +288,13 @@ namespace Zeroconf
                         return false;
                     }
 
-                    rr.hostname = std::string(reinterpret_cast<const char*>(&input.data[u8 + 1]), input.data[u8]);
+                    rr.name = std::string(reinterpret_cast<const char*>(&input.data[u8 + 1]), input.data[u8]);
                     rr.pos = static_cast<size_t>(is.tellg());
 
-                    is.read(reinterpret_cast<char*>(&u16), 2); // TYPE
+                    is.read(reinterpret_cast<char*>(&u16), 2); // type
                     rr.type = ntohs(u16);
 
-                    is.ignore(6); // QCLASS, TTL
+                    is.ignore(6); // qclass, ttl
 
                     is.read(reinterpret_cast<char*>(&u16), 2); // length
                     is.ignore(ntohs(u16)); // data
