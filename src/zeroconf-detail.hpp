@@ -68,6 +68,11 @@ namespace Zeroconf
             return WSAGetLastError(); // todo: errorno
         }
 
+        inline void CloseSocket(int fd)
+        {
+            closesocket(fd); // todo: close
+        }
+
         inline void WriteFqdn(const std::string& serviceName, std::vector<uint8_t>* result)
         {
             size_t len = 0;
@@ -104,7 +109,7 @@ namespace Zeroconf
             int st = setsockopt(fd, SOL_SOCKET, SO_BROADCAST, reinterpret_cast<const char*>(&SockTrue), sizeof(SockTrue));
             if (st < 0)
             {
-                closesocket(fd);
+                CloseSocket(fd);
                 Log::Error("Failed to set socket option SO_BROADCAST with code " + std::to_string(GetSocketError()));
                 return false;
             }
@@ -304,7 +309,7 @@ namespace Zeroconf
             if (!CreateSocket(&fd))
                 return false;
 
-            std::shared_ptr<void> guard(0, [fd](void*) { closesocket(fd); });
+            std::shared_ptr<void> guard(0, [fd](void*) { CloseSocket(fd); });
 
             if (!Send(fd, query))
                 return false;
