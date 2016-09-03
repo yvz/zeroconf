@@ -81,18 +81,27 @@ namespace Zeroconf
 
             for (size_t i = 0; i < serviceName.size(); i++)
             {
-                if (serviceName[i] == '.')
+                if (serviceName[i] != '.')
                 {
+                    result->push_back(serviceName[i]);
+                    len++;
+
+                    if (len > UINT8_MAX)
+                    {
+                        result->clear();
+                        break;
+                    }
+                }
+
+                if (serviceName[i] == '.' || i == serviceName.size() - 1)
+                {
+                    if (len == 0) continue;
+                    
                     result->at(pos) = len; // update component length
                     
                     len = 0;
                     pos = result->size();
-                    result->push_back(0); // serves as placeholder or trailing zero
-                }
-                else
-                {
-                    result->push_back(serviceName[i]);
-                    len++;
+                    result->push_back(0); // length placeholder or trailing zero
                 }
             }
         }
