@@ -63,7 +63,7 @@ namespace Zeroconf
             std::vector<mdns_record> records;
         };
 
-        inline int GetErrorCode()
+        inline int GetSocketError()
         {
             return WSAGetLastError(); // todo: errorno
         }
@@ -97,7 +97,7 @@ namespace Zeroconf
             int fd = socket(AF_INET, SOCK_DGRAM, 0);
             if (fd < 0)
             {
-                Log::Error("Failed to create socket with code " + std::to_string(GetErrorCode()));
+                Log::Error("Failed to create socket with code " + std::to_string(GetSocketError()));
                 return false;
             }
 
@@ -105,7 +105,7 @@ namespace Zeroconf
             if (st < 0)
             {
                 closesocket(fd);
-                Log::Error("Failed to set socket option SO_BROADCAST with code " + std::to_string(GetErrorCode()));
+                Log::Error("Failed to set socket option SO_BROADCAST with code " + std::to_string(GetSocketError()));
                 return false;
             }
 
@@ -131,7 +131,7 @@ namespace Zeroconf
             // todo: st == data.size() ???
             if (st < 0)
             {
-                Log::Error("Failed to send the query with code " + std::to_string(GetErrorCode()));
+                Log::Error("Failed to send the query with code " + std::to_string(GetSocketError()));
                 return false; 
             }
 
@@ -159,7 +159,7 @@ namespace Zeroconf
                 
                 if (st < 0)
                 {
-                    Log::Error("Failed to wait on socket with code " + std::to_string(GetErrorCode()));
+                    Log::Error("Failed to wait on socket with code " + std::to_string(GetSocketError()));
                     return false; 
                 }
 
@@ -180,7 +180,7 @@ namespace Zeroconf
 
                     if (st < 0)
                     {
-                        Log::Error("Failed to receive with code " + std::to_string(GetErrorCode()));
+                        Log::Error("Failed to receive with code " + std::to_string(GetSocketError()));
                         return false; 
                     }
 

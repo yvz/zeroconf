@@ -25,11 +25,6 @@ namespace Zeroconf
         return Detail::Resolve(serviceName, scanTime, result);
     }
 
-    inline int GetErrorCode()
-    {
-        return Detail::GetErrorCode();
-    }
-
     inline void SetLogCallback(LogCallback callback)
     {
         Detail::Log::SetLogCallback(callback);
