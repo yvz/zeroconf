@@ -11,6 +11,10 @@
 #include <istream>
 #include <streambuf>
 
+#if _MSC_VER == 1700
+#define thread_local __declspec(thread)
+#endif
+
 namespace Zeroconf
 {
     namespace Detail

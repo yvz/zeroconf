@@ -1,12 +1,6 @@
 #include <iostream>
 #include <vector>
 
-#ifdef WIN32
-#define thread_local __declspec(thread)
-#define WIN32_LEAN_AND_MEAN
-#include <winsock2.h>
-#endif
-
 #include "zeroconf.hpp"
 
 int main(int argc, char** argv)
