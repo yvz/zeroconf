@@ -106,6 +106,34 @@ namespace Zeroconf
             }
         }
 
+        inline size_t ReadFqdn(const std::vector<uint8_t>& data, size_t offset, std::string* result)
+        {
+            result->clear();
+
+            size_t pos = offset;
+            while (1)
+            {
+                if (pos >= data.size())
+                    return 0;
+
+                uint8_t len = data[pos++];
+                
+                if (pos + len > data.size())
+                    return 0;
+
+                if (len == 0)
+                    break;
+
+                if (!result->empty())
+                    result->append(".");
+        
+                result->append(reinterpret_cast<const char*>(&data[pos]), len);
+                pos += len;
+            }
+
+            return pos - offset;
+        }
+
         inline bool CreateSocket(int* result)
         {
             int fd = socket(AF_INET, SOCK_DGRAM, 0);
@@ -245,22 +273,16 @@ namespace Zeroconf
                 }
 
                 is.ignore(8); // qdcount, ancount, nscount, arcount
-        
-                while (1) // qname
-                {
-                    is.read(reinterpret_cast<char*>(&u8), 1); // hostname length
-                    if (u8 == 0)
-                        break;
 
-                    char str[256];
-                    is.read(str, u8); // hostname data
-        
-                    if (!result->qname.empty())
-                        result->qname.append(".");
-        
-                    result->qname.append(str, u8);
+                size_t cb = ReadFqdn(input.data, static_cast<size_t>(is.tellg()), &result->qname);
+                if (cb == 0)
+                {
+                    Log::Error("Failed to parse query name");
+                    return false;
                 }
 
+                is.ignore(cb); // qname
+        
                 is.read(reinterpret_cast<char*>(&u16), 2); // qtype
                 result->qtype = ntohs(u16);
 
@@ -282,13 +304,13 @@ namespace Zeroconf
                     }
         
                     is.read(reinterpret_cast<char*>(&u8), 1); // offset value
-                    if (u8 >= (uint8_t)input.data.size() || u8 + input.data[u8] >= (uint8_t)input.data.size())
+
+                    if (!ReadFqdn(input.data, static_cast<size_t>(u8), &rr.name))
                     {
-                        Log::Warning("Found inconsistent offset value while parsing responce");
+                        Log::Error("Failed to parse record name");
                         return false;
                     }
 
-                    rr.name = std::string(reinterpret_cast<const char*>(&input.data[u8 + 1]), input.data[u8]);
                     rr.pos = static_cast<size_t>(is.tellg());
 
                     is.read(reinterpret_cast<char*>(&u16), 2); // type
