@@ -18,6 +18,9 @@ int main(int argc, char** argv)
     std::vector<Zeroconf::mdns_responce> result;
     Zeroconf::Resolve("_http._tcp.local.", 3, &result);
 
+    for (auto& i: result)
+        std::cout << i.qname << std::endl;
+
 #ifdef WIN32
     WSACleanup();
 #endif

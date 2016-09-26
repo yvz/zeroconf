@@ -14,6 +14,12 @@
 #ifdef WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <winsock2.h>
+#else
+#include <error.h>
+#include <string.h>
+#include <unistd.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
 #endif
 
 #include "zeroconf-util.hpp"
@@ -70,12 +76,20 @@ namespace Zeroconf
 
         inline int GetSocketError()
         {
-            return WSAGetLastError(); // todo: errorno
+#ifdef WIN32
+            return WSAGetLastError();
+#else
+            return errno;
+#endif
         }
 
         inline void CloseSocket(int fd)
         {
-            closesocket(fd); // todo: close
+#ifdef WIN32
+            closesocket(fd);
+#else
+            close(fd);
+#endif
         }
 
         inline void WriteFqdn(const std::string& name, std::vector<uint8_t>* result)
@@ -167,7 +181,7 @@ namespace Zeroconf
             broadcastAddr.sin_port = htons(5353);
             broadcastAddr.sin_addr.s_addr = INADDR_BROADCAST;
 
-            int st = sendto(
+            auto st = sendto(
                 fd, 
                 reinterpret_cast<const char*>(&data[0]), 
                 data.size(), 
@@ -212,12 +226,16 @@ namespace Zeroconf
 
                 if (st > 0)
                 {
+#ifdef WIN32
                     int salen = sizeof(sockaddr_storage);
+#else
+                    unsigned int salen = sizeof(sockaddr_storage);
+#endif
 
                     raw_responce item;
                     item.data.resize(MdnsMessageMaxLength);                    
 
-                    st = recvfrom(
+                    auto cb = recvfrom(
                         fd, 
                         reinterpret_cast<char*>(&item.data[0]), 
                         item.data.size(), 
@@ -225,13 +243,13 @@ namespace Zeroconf
                         reinterpret_cast<sockaddr*>(&item.peer), 
                         &salen);
 
-                    if (st < 0)
+                    if (cb < 0)
                     {
                         Log::Error("Failed to receive with code " + std::to_string(GetSocketError()));
                         return false; 
                     }
 
-                    item.data.resize(st);
+                    item.data.resize((size_t)cb);
                     result->push_back(item);
                 }
             }
@@ -249,6 +267,9 @@ namespace Zeroconf
             //   0xc0
             //   name offset (1b)
             //   DNS RR
+            //
+            // Note:
+            //   GCC has bug in is.ignore(n)
 
             if (input.data.empty())
                 return false;
@@ -260,15 +281,17 @@ namespace Zeroconf
 
             stdext::membuf buf(&input.data[0], input.data.size());
             std::istream is(&buf);
-    
-            is.exceptions(std::istream::failbit | std::istream::badbit);
+
+            const auto Flags = std::istream::failbit | std::istream::badbit | std::istream::eofbit;
+            is.exceptions(Flags);
 
             try
             {
                 uint8_t u8;
                 uint16_t u16;
 
-                is.ignore(2); // id
+                is.ignore(); // id
+                is.ignore();
     
                 is.read(reinterpret_cast<char*>(&u16), 2); // flags
                 if (ntohs(u16) != MdnsResponseFlag)
@@ -277,7 +300,8 @@ namespace Zeroconf
                     return false;
                 }
 
-                is.ignore(8); // qdcount, ancount, nscount, arcount
+                for (auto i = 0; i < 8; i++)
+                    is.ignore(); // qdcount, ancount, nscount, arcount
 
                 size_t cb = ReadFqdn(input.data, static_cast<size_t>(is.tellg()), &result->qname);
                 if (cb == 0)
@@ -286,18 +310,21 @@ namespace Zeroconf
                     return false;
                 }
 
-                is.ignore(cb); // qname
+                for (auto i = 0; i < cb; i++)
+                    is.ignore(); // qname
         
                 is.read(reinterpret_cast<char*>(&u16), 2); // qtype
                 result->qtype = ntohs(u16);
 
-                is.ignore(2); // qclass
+                is.ignore(); // qclass
+                is.ignore();
 
                 while (1)
                 {
-                    is.peek();
-                    if (is.eof())
+                    is.exceptions(std::istream::goodbit);
+                    if (is.peek() == EOF)
                         break;
+                    is.exceptions(Flags);
 
                     mdns_record rr = {0};
 
@@ -321,10 +348,13 @@ namespace Zeroconf
                     is.read(reinterpret_cast<char*>(&u16), 2); // type
                     rr.type = ntohs(u16);
 
-                    is.ignore(6); // qclass, ttl
+                    for (auto i = 0; i < 6; i++)
+                        is.ignore(); // qclass, ttl
 
                     is.read(reinterpret_cast<char*>(&u16), 2); // length
-                    is.ignore(ntohs(u16)); // data
+
+                    for (auto i = 0; i < ntohs(u16); i++)
+                        is.ignore(); // data
 
                     rr.len = MdnsRecordHeaderLength + ntohs(u16);
                     result->records.push_back(rr);
