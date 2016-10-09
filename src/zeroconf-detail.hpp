@@ -29,7 +29,7 @@ namespace Zeroconf
     namespace Detail
     {
         const size_t MdnsMessageMaxLength = 512;
-        const size_t MdnsRecordHeaderLength = 10;    
+        const size_t MdnsRecordHeaderLength = 12;
     
         const uint8_t MdnsOffsetToken = 0xC0;
         const uint16_t MdnsResponseFlag = 0x8400;
@@ -327,6 +327,7 @@ namespace Zeroconf
                     is.exceptions(Flags);
 
                     mdns_record rr = {0};
+                    rr.pos = static_cast<size_t>(is.tellg());
 
                     is.read(reinterpret_cast<char*>(&u8), 1); // offset token
                     if (u8 != MdnsOffsetToken)
@@ -334,7 +335,7 @@ namespace Zeroconf
                         Log::Warning("Found incorrect offset token while parsing responce");
                         return false;
                     }
-        
+
                     is.read(reinterpret_cast<char*>(&u8), 1); // offset value
                     if (u8 >= (uint8_t)input.data.size() || u8 + input.data[u8] >= (uint8_t)input.data.size())
                     {
@@ -343,7 +344,6 @@ namespace Zeroconf
                     }
 
                     rr.name = std::string(reinterpret_cast<const char*>(&input.data[u8 + 1]), input.data[u8]);
-                    rr.pos = static_cast<size_t>(is.tellg());
 
                     is.read(reinterpret_cast<char*>(&u16), 2); // type
                     rr.type = ntohs(u16);

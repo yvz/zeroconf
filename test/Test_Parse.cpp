@@ -97,9 +97,8 @@ TEST(Test_Parse, MultipleRecordsVariedSizeAndType)
         size_t pos = sizeof(BlankPacket);
         pos += i * (sizeof(BlankRecord) + 256);
         pos += i * (i - 1) / 2; // series
-        pos += 2; // token and offset
 
-        size_t len = sizeof(BlankRecord) - 2 + i + 256;
+        size_t len = sizeof(BlankRecord) + i + 256;
     
         auto& rr = output.records[i];
         EXPECT_EQ(i + 256, rr.type);
