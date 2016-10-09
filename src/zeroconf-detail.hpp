@@ -336,13 +336,13 @@ namespace Zeroconf
                     }
         
                     is.read(reinterpret_cast<char*>(&u8), 1); // offset value
-
-                    if (!ReadFqdn(input.data, static_cast<size_t>(u8), &rr.name))
+                    if (u8 >= (uint8_t)input.data.size() || u8 + input.data[u8] >= (uint8_t)input.data.size())
                     {
-                        Log::Error("Failed to parse record name");
+                        Log::Warning("Failed to parse record name");
                         return false;
                     }
 
+                    rr.name = std::string(reinterpret_cast<const char*>(&input.data[u8 + 1]), input.data[u8]);
                     rr.pos = static_cast<size_t>(is.tellg());
 
                     is.read(reinterpret_cast<char*>(&u16), 2); // type

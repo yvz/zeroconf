@@ -122,7 +122,7 @@ TEST(Test_Parse, RecordName)
 
     ASSERT_TRUE(Zeroconf::Detail::Parse(input, &output));
     ASSERT_EQ(1, output.records.size());
-    EXPECT_STREQ("foo.bar", output.records[0].name.c_str());
+    EXPECT_STREQ("foo", output.records[0].name.c_str());
 }
 
 TEST(Test_Parse, EmptyAndIncompletePacket)
