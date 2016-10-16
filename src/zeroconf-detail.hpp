@@ -216,8 +216,8 @@ namespace Zeroconf
                 timeval tv = {0};
                 tv.tv_sec = static_cast<long>(scanTime);
 
-                int st = select(0, &fds, nullptr, nullptr, &tv);
-                
+                int st = select(fd+1, &fds, nullptr, nullptr, &tv);
+
                 if (st < 0)
                 {
                     Log::Error("Failed to wait on socket with code " + std::to_string(GetSocketError()));
