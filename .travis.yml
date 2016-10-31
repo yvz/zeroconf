@@ -1,0 +1,20 @@
+language: cpp
+compiler:
+  - gcc
+addons:
+  apt:
+    sources:
+    - ubuntu-toolchain-r-test
+    packages:
+    - gcc-5
+    - g++-5
+install:
+  - export CXX="g++-5" CC="gcc-5"
+  - ./travis-gmock.sh
+  - export CPLUS_INCLUDE_PATH="$TRAVIS_BUILD_DIR/googletest-release-1.8.0/include"
+  - export LD_LIBRARY_PATH="$TRAVIS_BUILD_DIR/googletest-release-1.8.0/lib"
+  - export LIBRARY_PATH="$TRAVIS_BUILD_DIR/googletest-release-1.8.0/lib"
+script:
+  - mkdir build
+  - cd build
+  - cmake .. && make
