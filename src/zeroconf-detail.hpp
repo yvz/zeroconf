@@ -337,7 +337,7 @@ namespace Zeroconf
                     }
 
                     is.read(reinterpret_cast<char*>(&u8), 1); // offset value
-                    if (u8 >= (uint8_t)input.data.size() || u8 + input.data[u8] >= (uint8_t)input.data.size())
+                    if ((size_t)u8 >= input.data.size() || (size_t)u8 + input.data[u8] >= input.data.size())
                     {
                         Log::Warning("Failed to parse record name");
                         return false;
