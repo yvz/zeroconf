@@ -71,6 +71,7 @@ namespace Zeroconf
             sockaddr_storage peer;
             uint16_t qtype;
             std::string qname;
+            std::vector<uint8_t> data;
             std::vector<mdns_record> records;
         };
 
@@ -278,6 +279,7 @@ namespace Zeroconf
             result->records.clear();
 
             memcpy(&result->peer, &input.peer, sizeof(sockaddr_storage));
+            result->data = input.data;
 
             stdext::membuf buf(&input.data[0], input.data.size());
             std::istream is(&buf);
