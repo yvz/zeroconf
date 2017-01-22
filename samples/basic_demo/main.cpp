@@ -59,7 +59,19 @@ void PrintResult(std::vector<Zeroconf::mdns_responce>& result)
             for (size_t j = 0; j < item.records.size(); j++)
             {
                 auto& rr = item.records[j];
-                std::cout << " " << j << ": type " << rr.type << ", size " << rr.len << ", " << rr.name << std::endl;
+                std::cout << " " << j;
+                std::cout << ": type ";
+                switch(rr.type)
+                {
+                    case  1: std::cout << "A"; break;
+                    case 12: std::cout << "PTR"; break;
+                    case 16: std::cout << "TXT"; break;
+                    case 28: std::cout << "AAAA"; break;
+                    case 33: std::cout << "SRV"; break;
+                    default: std::cout << rr.type;
+                }
+                std::cout << ", size " << rr.len;
+                std::cout << ", " << rr.name << std::endl;
             }
         }
 
@@ -79,10 +91,13 @@ int main(int argc, char** argv)
     }
 #endif
 
+    static const std::string MdnsQuery = "_http._tcp.local";
+    std::cout << "Query: " << MdnsQuery << std::endl;
+
     Zeroconf::SetLogCallback(PrintLog);
 
     std::vector<Zeroconf::mdns_responce> result;
-    bool st = Zeroconf::Resolve("_http._tcp.local.", 3, &result);
+    bool st = Zeroconf::Resolve(MdnsQuery, /*scanTime*/ 3, &result);
 
     std::cout << SeparatorLine << std::endl;
 
