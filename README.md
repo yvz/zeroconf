@@ -32,26 +32,26 @@ samples/basic_demo/main.cpp -- console demo app that sends a query and displays 
 
 2. Include zerconf.hpp and make a call to Zeroconf::Resolve. There's only a synchronous version of the API. 
 
-```c++
-#include "zeroconf.hpp"
-
-std::vector<Zeroconf::mdns_responce> result;
-bool st = Zeroconf::Resolve("_http._tcp.local", /*scanTime*/ 3, &result);
-```
+  ```c++
+  #include "zeroconf.hpp"
+  
+  std::vector<Zeroconf::mdns_responce> result;
+  bool st = Zeroconf::Resolve("_http._tcp.local", /*scanTime*/ 3, &result);
+  ```
 
 3. Access the result as follows:
 
-```c++
-result[i].peer                 // Address of the responded machine
-result[i].records              // Resource records of the answer
-result[i].records[j].type;     // The type of the RR
-result[i].records[j].pos;      // The offset of the RR, starting with 0xC0 
-result[i].records[j].len;      // Full length of the RR
-result[i].records[j].name;     // Name of the node to which the record belongs
-```
+  ```c++
+  result[i].peer                 // Address of the responded machine
+  result[i].records              // Resource records of the answer
+  result[i].records[j].type;     // The type of the RR
+  result[i].records[j].pos;      // The offset of the RR, starting with 0xC0 
+  result[i].records[j].len;      // Full length of the RR
+  result[i].records[j].name;     // Name of the node to which the record belongs
+  ```
 
 4. In case of failure, Zeroconf::Resolve returns false and provides diagnostic output to the client's callback:
 
-```c++
-Zeroconf::SetLogCallback([](Zeroconf::LogLevel level, const std::string& message) { ... });
-```
+  ```c++
+  Zeroconf::SetLogCallback([](Zeroconf::LogLevel level, const std::string& message) { ... });
+  ```
